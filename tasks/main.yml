@@ -1,0 +1,44 @@
+---
+- name: download template {{ flavors[flavor].template }}
+  command: "pveam download local {{ flavors[flavor].template }}"
+  args:
+    creates: "/var/lib/vz/template/cache/{{ flavors[flavor].template }}"
+- name: create host {{ hostname }}
+  command: >
+    pct create {{ vmid }} /var/lib/vz/template/cache/{{ flavors[flavor].template }}
+        -storage local-zfs
+        -hostname {{ hostname }}
+        -net0 name=eth0,bridge=vmbr0,ip=dhcp
+        -onboot 1
+        -memory {{ memory|default(512) }}
+        -swap {{ swap|default(512) }}
+        -rootfs local-zfs:{{ disk|default(4) }}
+        --unprivileged
+        --ostype {{ flavors[flavor].ostype }}
+        --password {{ root_password }}
+        {{ extra_opts|default() }}
+  args:
+    creates: "/etc/pve/lxc/{{ vmid }}.conf"
+- name: set id mappings {{ hostname }} copy out
+  copy:
+    remote_src: yes
+    src: "/etc/pve/lxc/{{ vmid }}.conf"
+    dest: /tmp/cpci
+- name: set id mappings {{ hostname }}
+  blockinfile:
+    path: /tmp/cpci
+    block: |
+      lxc.idmap = u 0 100000 65536
+      lxc.idmap = g 0 100000 65536
+      lxc.idmap = u {{ ipa_idrange_start }} {{ ipa_idrange_start }} {{ ipa_idrange_size }}
+      lxc.idmap = g {{ ipa_idrange_start }} {{ ipa_idrange_start }} {{ ipa_idrange_size }}
+- name: set id mappings {{ hostname }} copy in
+  command: "cp /tmp/cpci /etc/pve/lxc/{{ vmid }}.conf"
+- name: start container
+  shell: "{ pct status {{ vmid }} | grep running ; } || pct start {{ vmid }}"
+- name: update apt
+  command: "pct exec {{ vmid }} -- apt update"
+- name: install freeipa-client
+  command: "pct exec {{ vmid }} -- sh -c 'DEBIAN_FRONTEND=noninteractive apt install -y freeipa-client'"
+- name: join freeipa
+  command: "pct exec {{ vmid }} -- sh -c 'getent passwd admin || ipa-client-install -U --domain={{ ipa_domain }} --mkhomedir -w {{ ipa_password }} -p {{ ipa_username }} --no-ntp --force-join'"

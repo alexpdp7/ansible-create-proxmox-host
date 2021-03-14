@@ -1,0 +1,5 @@
+---
+flavors:
+  ubuntu_20_04:
+    template: ubuntu-20.04-standard_20.04-1_amd64.tar.gz
+    ostype: ubuntu
