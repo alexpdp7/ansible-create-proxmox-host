@@ -22,7 +22,7 @@ I keep IPA data on group_vars/all/(vars|vault) and proxmox_vmid on host_vars/<ho
 
 I only need a single line in the inventory for each host's hostname, and I put:
 
-``
+```
 ansible_become: True
 ansible_user: <my ipa username>
 ```
