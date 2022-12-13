@@ -76,3 +76,6 @@ Use the following to create a zvol to hold `/var/lib/docker` and get Docker work
 ...
         extra_opts: -features nesting=1,keyctl=1 -mp0 /mnt/dokku-docker,mp=/var/lib/docker
 ```
+
+Note: as this does not follow the disk naming conventions that Proxmox uses, Proxmox features like snapshots and migration might cease to work.
+See #1 for hints about following the disk naming conventions to solve this problem.
